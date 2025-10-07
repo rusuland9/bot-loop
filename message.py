@@ -20,6 +20,7 @@ import uuid
 import time
 import requests
 import argparse
+import sqlite3
 from dotenv import load_dotenv
 
 load_dotenv()  # loads .env into environment
@@ -33,9 +34,10 @@ except Exception:
 # Environment variables
 COOKIE = os.getenv("SLACK_COOKIE", "").strip()
 XOXC_TOKEN = os.getenv("SLACK_XOXC", "").strip()
-DEFAULT_CHANNEL = os.getenv("TO_USER", "").strip()
+SQLITE_PATH = os.getenv("SQLITE_PATH", "people.db").strip()
 
-# API endpoint URL (from your request)
+TO_USER="U06M7NH071V"
+
 REQUEST_URL = (
     "https://shopifypartners.slack.com/api/chat.postMessage"
     "?_x_id=d2d21f07-1759799665.874"
@@ -178,6 +180,22 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         print(f"❌ Request failed: {e}")
         return {"error": str(e)}
 
+def get_all_user_ids(db_path: str) -> list:
+    ids = []
+    if not os.path.exists(db_path):
+        return ids
+    conn = sqlite3.connect(db_path)
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT user_id FROM people WHERE user_id IS NOT NULL AND user_id != ''")
+        for row in cur.fetchall():
+            uid = row[0]
+            if uid:
+                ids.append(uid)
+    finally:
+        conn.close()
+    return ids
+
 def main():
     parser = argparse.ArgumentParser(description="Send a message to Slack")
     parser.add_argument("message", nargs="?", default="Hello", help="The message text to send (default: Hello)")
@@ -195,23 +213,42 @@ def main():
         print("  TO_USER - Default channel ID (optional)")
         sys.exit(1)
     
-    # Determine channel
-    channel = args.channel or DEFAULT_CHANNEL
-    if not channel:
-        print("❌ ERROR: No channel specified. Use --channel or set TO_USER in .env")
-        sys.exit(1)
-    
-    # Build session and send message
+    # Build session
     session = build_session_from_cookie(COOKIE)
-    result = send_message(session, args.message, channel, args.thread)
     
-    if "error" in result:
-        print(f"❌ Failed to send message: {result['error']}")
+    # If a single channel is specified, send just once
+    if args.channel:
+        result = send_message(session, args.message, args.channel, args.thread)
+        if "error" in result:
+            print(f"❌ Failed to send message: {result['error']}")
+            sys.exit(1)
+        print("✅ Message sent successfully!")
+        return
+
+    # Otherwise, load all user_ids from SQLite and loop
+    TO_USERS = get_all_user_ids(SQLITE_PATH)
+    if not TO_USERS and TO_USER:
+        TO_USERS = [TO_USER]
+    if not TO_USERS:
+        print("❌ No recipients found. Provide --channel or ensure people.db exists and is populated.")
         sys.exit(1)
-    elif result.get("success") or "ok" in result:
-        print("✅ Message sent successfully!")
-    else:
-        print("✅ Message sent successfully!")
+
+    print(f"Found {len(TO_USERS)} recipient(s). Starting broadcast...")
+    success = 0
+    failure = 0
+    for idx, uid in enumerate(TO_USERS, 1):
+        result = send_message(session, args.message, uid, args.thread)
+        if "error" in result:
+            failure += 1
+            print(f"[{idx}/{len(TO_USERS)}] ❌ {uid}: {result['error']}")
+        else:
+            success += 1
+            print(f"[{idx}/{len(TO_USERS)}] ✅ {uid}")
+        if idx < len(TO_USERS):
+            time.sleep(0.8)
+    print(f"Done. Success: {success}, Failures: {failure}")
+    if failure:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
