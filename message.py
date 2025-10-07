@@ -12,7 +12,6 @@ Environment Variables Required:
     SLACK_XOXC - Slack token (xoxc-...)
     TO_USER - Default channel ID (optional, can be overridden with --channel)
 """
-
 import os
 import json
 import sys
@@ -36,18 +35,37 @@ COOKIE = os.getenv("SLACK_COOKIE", "").strip()
 XOXC_TOKEN = os.getenv("SLACK_XOXC", "").strip()
 SQLITE_PATH = os.getenv("SQLITE_PATH", "people.db").strip()
 
+
+
+# olegdomanov8@gmail.com
+# REQUEST_URL = (
+#     "https://shopifypartners.slack.com/api/chat.postMessage"
+#     "?_x_id=d2d21f07-1759799665.874"
+#     "&_x_csid=wZowavYWxo0"
+#     "&slack_route=T4BB7S7HP"
+#     "&_x_version_ts=1759776465"
+#     "&_x_frontend_build_type=current"
+#     "&_x_desktop_ia=4"
+#     "&_x_gantry=true"
+#     "&fp=3d"
+#     "&_x_num_retries=0"
+# )
+
+
+# rusuland9@gmail.com
 REQUEST_URL = (
     "https://shopifypartners.slack.com/api/chat.postMessage"
-    "?_x_id=d2d21f07-1759799665.874"
-    "&_x_csid=wZowavYWxo0"
+    "?_x_id=8875ce36-1759870645.754"
+    "&_x_csid=9YrUsgKetCo"
     "&slack_route=T4BB7S7HP"
-    "&_x_version_ts=1759776465"
+    "&_x_version_ts=1759863116"
     "&_x_frontend_build_type=current"
     "&_x_desktop_ia=4"
     "&_x_gantry=true"
-    "&fp=3d"
+    "&fp=13"
     "&_x_num_retries=0"
 )
+
 
 def build_session_from_cookie(cookie_header: str) -> requests.Session:
     """Build a requests session with cookies from the cookie header string."""
@@ -104,17 +122,16 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         "Sec-Fetch-Site": "same-site",
         "Priority": "u=1, i"
     }
-    
-    # Form data (from your payload)
+
     form_data = {
-        "_x_id": f"d2d21f07-{int(time.time())}.874",
-        "_x_csid": "wZowavYWxo0",
+        "_x_id": f"3aad4449-{int(time.time())}.062",
+        "_x_csid": "KI9fc-aj9RA",
         "slack_route": "T4BB7S7HP",
-        "_x_version_ts": "1759776465",
+        "_x_version_ts": "1759865261",
         "_x_frontend_build_type": "current",
         "_x_desktop_ia": "4",
         "_x_gantry": "true",
-        "fp": "3d",
+        "fp": "13",
         "_x_num_retries": "0",
         "token": XOXC_TOKEN,
         "channel": channel,
@@ -132,6 +149,34 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         "_x_sonic": "true",
         "_x_app_name": "client"
     }
+
+    # #olegdomanov
+    # form_data = {
+    #     "_x_id": f"d2d21f07-{int(time.time())}.874",
+    #     "_x_csid": "wZowavYWxo0",
+    #     "slack_route": "T4BB7S7HP",
+    #     "_x_version_ts": "1759776465",
+    #     "_x_frontend_build_type": "current",
+    #     "_x_desktop_ia": "4",
+    #     "_x_gantry": "true",
+    #     "fp": "3d",
+    #     "_x_num_retries": "0",
+    #     "token": XOXC_TOKEN,
+    #     "channel": channel,
+    #     "ts": current_ts,
+    #     "type": "message",
+    #     "xArgs": json.dumps({"draft_id": draft_id}),
+    #     "unfurl": "[]",
+    #     "client_context_team_id": "T4BB7S7HP",
+    #     "blocks": json.dumps(create_message_blocks(message)),
+    #     "draft_id": draft_id,
+    #     "include_channel_perm_error": "true",
+    #     "client_msg_id": client_msg_id,
+    #     "_x_reason": "webapp_message_send",
+    #     "_x_mode": "online",
+    #     "_x_sonic": "true",
+    #     "_x_app_name": "client"
+    # }
     
     # Add thread_ts if replying to a thread
     if thread_ts:
@@ -147,13 +192,10 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         response = session.post(REQUEST_URL, headers=headers, files=files, timeout=30)
         
         print(f"HTTP Status: {response.status_code}")
-        
-        # Check for HTML response (login page)
         if "text/html" in response.headers.get("Content-Type", ""):
             print("⚠️ Received HTML response. Your cookie/token may be invalid.")
             return {"error": "Authentication failed", "status_code": response.status_code}
-        
-        # Try to parse JSON response
+
         try:
             result = response.json()
             print("✅ Message sent successfully!")
