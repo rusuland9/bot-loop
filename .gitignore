@@ -1,0 +1,10 @@
+﻿# Environment variables
+.env
+
+# Python virtual environment
+venv/
+
+# Generated data files
+people-info.json
+
+people.db
