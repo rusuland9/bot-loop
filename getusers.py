@@ -11,7 +11,6 @@ Produces:
 """
 
 import os
-import json
 import sys
 import sqlite3
 import requests
@@ -35,7 +34,7 @@ if db_url.startswith("sqlite:///"):
     SQLITE_PATH = db_url.replace("sqlite:///", "", 1)
 
 # Pagination controls via environment
-PAGE_START = int(os.getenv("PAGE_START", "100").strip() or 100)
+PAGE_START = int(os.getenv("PAGE_START", "1").strip() or 1)
 MAX_PAGES = int(os.getenv("MAX_PAGES", "0").strip() or 0)  # 0 means unlimited until empty page
 
 def persist_people_to_sqlite(payload: dict, db_path: str) -> None:
@@ -96,22 +95,23 @@ if not COOKIE or not XOXC_TOKEN:
 
 REQUEST_URL = (
     "https://shopifypartners.slack.com/api/search.modules.people"
-    "?_x_id=58298780-1759773573.777"
+    "?_x_id=d2d21f07-1759804324.347"
+    "&_x_csid=YMO1R_UnG-U"
     "&slack_route=T4BB7S7HP"
-    "&_x_version_ts=1759765056"
+    "&_x_version_ts=1759776465"
     "&_x_frontend_build_type=current"
     "&_x_desktop_ia=4"
     "&_x_gantry=true"
-    "&fp=e3"
+    "&fp=3d"
     "&_x_num_retries=0"
 )
 
 FORM_FIELDS = {
     "module": "people",
     "query": "",
-    "page": "106",
-    "client_req_id": "b41b784c-0337-4b54-9e30-6d0529a62ea2",
-    "browse_session_id": "7e96d9ba-cb08-40dc-b4a1-413c282476b9",
+    "page": "120",
+    "client_req_id": "dda9beeb-7dfd-4dd1-a4b8-825ee2ab0266",
+    "browse_session_id": "dfea5e0c-b678-4081-92d8-519375ca3612",
     "extracts": "0",
     "highlight": "0",
     "extra_message_data": "1",
@@ -187,6 +187,7 @@ def main():
         # try parse JSON
         try:
             j = resp.json()
+            print(j)
         except ValueError:
             print("⚠️ Response not JSON. Saving raw text.")
             with open("slack_people_raw.txt", "w", encoding="utf-8") as f:
