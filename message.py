@@ -36,8 +36,6 @@ COOKIE = os.getenv("SLACK_COOKIE", "").strip()
 XOXC_TOKEN = os.getenv("SLACK_XOXC", "").strip()
 SQLITE_PATH = os.getenv("SQLITE_PATH", "people.db").strip()
 
-TO_USER="U06M7NH071V"
-
 REQUEST_URL = (
     "https://shopifypartners.slack.com/api/chat.postMessage"
     "?_x_id=d2d21f07-1759799665.874"
