@@ -12,6 +12,7 @@ Environment Variables Required:
     SLACK_XOXC - Slack token (xoxc-...)
     TO_USER - Default channel ID (optional, can be overridden with --channel)
 """
+
 import os
 import json
 import sys
@@ -122,6 +123,9 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         "Sec-Fetch-Site": "same-site",
         "Priority": "u=1, i"
     }
+    
+
+
 
     form_data = {
         "_x_id": f"3aad4449-{int(time.time())}.062",
@@ -192,10 +196,13 @@ def send_message(session: requests.Session, message: str, channel: str, thread_t
         response = session.post(REQUEST_URL, headers=headers, files=files, timeout=30)
         
         print(f"HTTP Status: {response.status_code}")
+        
+        # Check for HTML response (login page)
         if "text/html" in response.headers.get("Content-Type", ""):
             print("⚠️ Received HTML response. Your cookie/token may be invalid.")
             return {"error": "Authentication failed", "status_code": response.status_code}
-
+        
+        # Try to parse JSON response
         try:
             result = response.json()
             print("✅ Message sent successfully!")
@@ -236,6 +243,21 @@ def get_all_user_ids(db_path: str) -> list:
         conn.close()
     return ids
 
+def read_message_from_file(file_path: str = "content.txt") -> str:
+    """Read message content from a text file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            if not content:
+                return "Hello"  # fallback if file is empty
+            return content
+    except FileNotFoundError:
+        print(f"⚠️ File {file_path} not found. Using default message 'Hello'")
+        return "Hello"
+    except Exception as e:
+        print(f"⚠️ Error reading {file_path}: {e}. Using default message 'Hello'")
+        return "Hello"
+
 def main():
     parser = argparse.ArgumentParser(description="Send a message to Slack")
     parser.add_argument("message", nargs="?", default="Hello", help="The message text to send (default: Hello)")
@@ -243,6 +265,10 @@ def main():
     parser.add_argument("--thread", "-t", help="Thread timestamp to reply to")
     
     args = parser.parse_args()
+    
+    # Read message from content.txt file
+    message_text = read_message_from_file("content.txt")
+    print(f"📄 Message loaded from content.txt: {message_text[:50]}{'...' if len(message_text) > 50 else ''}")
     
     # Validate required environment variables
     if not COOKIE or not XOXC_TOKEN:
@@ -258,7 +284,7 @@ def main():
     
     # If a single channel is specified, send just once
     if args.channel:
-        result = send_message(session, args.message, args.channel, args.thread)
+        result = send_message(session, message_text, args.channel, args.thread)
         if "error" in result:
             print(f"❌ Failed to send message: {result['error']}")
             sys.exit(1)
@@ -277,7 +303,7 @@ def main():
     success = 0
     failure = 0
     for idx, uid in enumerate(TO_USERS, 1):
-        result = send_message(session, args.message, uid, args.thread)
+        result = send_message(session, message_text, uid, args.thread)
         if "error" in result:
             failure += 1
             print(f"[{idx}/{len(TO_USERS)}] ❌ {uid}: {result['error']}")
